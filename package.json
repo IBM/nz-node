@@ -1,0 +1,41 @@
+{
+  "name": "node-postgres",
+  "description": "node postgres monorepo",
+  "main": "index.js",
+  "private": true,
+  "repository": "git@github.com:brianc/node-postgres.git",
+  "author": "Brian M. Carlson <brian.m.carlson@gmail.com>",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm run lerna exec --concurrency 1 npm test",
+    "build": "tsc --build",
+    "build:watch": "tsc --build --watch",
+    "docs:build": "cd docs && npm run build",
+    "docs:start": "cd docs && npm start",
+    "pretest": "npm run build",
+    "prepublish": "npm run build",
+    "lint": "eslint --cache 'packages/**/*.{js,ts,tsx}'"
+  },
+  "devDependencies": {
+    "@types/minimatch": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^5.1.2",
+    "lerna": "^3.19.0",
+    "prettier": "3.0.3",
+    "typescript": "^5.3.0"
+  },
+  "prettier": {
+    "semi": false,
+    "printWidth": 120,
+    "arrowParens": "always",
+    "trailingComma": "es5",
+    "singleQuote": true
+  }
+}
