@@ -746,7 +746,7 @@ async function datatypesExample() {
   console.log('\n=== Comprehensive Netezza Data Types Test ===\n')
 
   const client = new Client({
-    host: process.env.NETEZZA_HOST || 'abs-nzlite1.fyre.ibm.com',
+    host: process.env.NETEZZA_HOST || 'localhost',
     port: parseInt(process.env.NETEZZA_PORT || '5480'),
     database: process.env.NETEZZA_DATABASE || 'system',
     user: process.env.NETEZZA_USER || 'admin',
@@ -844,7 +844,7 @@ async function main() {
   console.log('Netezza Node.js Driver Examples')
   console.log('================================\n')
   console.log('Environment variables:')
-  console.log('  NETEZZA_HOST:', process.env.NETEZZA_HOST || 'abs-nzlite1.fyre.ibm.com')
+  console.log('  NETEZZA_HOST:', process.env.NETEZZA_HOST || 'localhost')
   console.log('  NETEZZA_PORT:', process.env.NETEZZA_PORT || '5480')
   console.log('  NETEZZA_DATABASE:', process.env.NETEZZA_DATABASE || 'system')
   console.log('  NETEZZA_USER:', process.env.NETEZZA_USER || 'admin')
