@@ -21,7 +21,7 @@
   "author": "Abhishek Jog",
   "contributors": [
     "Sagar Soni",
-    "Abhishek Sathish",
+    "Abhishek Satish",
     "Brighty Jobin"
   ],
   "main": "./lib",
@@ -51,17 +51,6 @@
     "typescript": "^4.0.3",
     "vitest": "~3.0.9",
     "wrangler": "^3.x"
-  },
-  "optionalDependencies": {
-    "pg-cloudflare": "^1.2.7"
-  },
-  "peerDependencies": {
-    "pg-native": ">=3.0.1"
-  },
-  "peerDependenciesMeta": {
-    "pg-native": {
-      "optional": true
-    }
   },
   "scripts": {
     "test": "make test-all",
