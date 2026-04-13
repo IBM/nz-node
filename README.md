@@ -4,9 +4,6 @@
 
 A Node.js driver for IBM Netezza databases, implementing IBM's proprietary Netezza protocol.
 
-## Overview
-
-This is a dedicated Netezza driver that implements the Netezza-specific connection protocol. It is **not** compatible with standard PostgreSQL databases - it is designed exclusively for Netezza Performance Server (NPS).
 
 ## Installation
 
@@ -16,6 +13,7 @@ npm install ibm-netezza
 
 ## Features
 
+- **Data Type Support**: Support for all standard Netezza data types.
 - **Full Netezza Protocol Support**: Implements CP_VERSION_2 through CP_VERSION_6
 - **Multiple Authentication Methods**: 
   - Plain password (AUTH_REQ_PASSWORD)
@@ -77,11 +75,123 @@ try {
   rows: [],        // Array of row objects
   fields: [],      // Array of field metadata
   rowCount: 0,     // Number of rows
-  command: 'SELECT' // SQL command
+  command: 'SELECT', // SQL command
+  notices: []      // Array of notice messages from server
+}
+```
+
+### Handling Notices
+
+Netezza servers can send notice messages (warnings, informational messages) during query execution. These are available in the result object:
+
+```javascript
+const result = await client.query('SHOW AUTOMAINT')
+console.log('Query result:', result.rows)
+
+// Check for notices
+if (result.notices && result.notices.length > 0) {
+  result.notices.forEach(notice => {
+    console.log('Notice:', notice.message)
+  })
 }
 ```
 
 ## Examples
+
+### CRUD Operations
+
+#### Create (INSERT)
+
+```javascript
+const { Client } = require('ibm-netezza')
+const client = new Client({
+  host: 'localhost',
+  port: 5480,
+  database: 'mydb',
+  user: 'admin',
+  password: 'password'
+})
+
+await client.connect()
+
+try {
+  // Insert single row
+  const result = await client.query(`
+    INSERT INTO users (id, name, email)
+    VALUES (1, 'John Doe', 'john@example.com')
+  `)
+  console.log('Rows inserted:', result.rowCount)
+} finally {
+  await client.end()
+}
+```
+
+#### Read (SELECT)
+
+```javascript
+await client.connect()
+
+try {
+  // Select all rows
+  const allUsers = await client.query('SELECT * FROM users')
+  console.log('All users:', allUsers.rows)
+  
+  // Select with WHERE clause
+  const specificUser = await client.query(`
+    SELECT * FROM users WHERE id = 1
+  `)
+  console.log('User:', specificUser.rows[0])
+
+} finally {
+  await client.end()
+}
+```
+
+#### Update (UPDATE)
+
+```javascript
+await client.connect()
+
+try {
+  // Update single row
+  const result = await client.query(`
+    UPDATE users
+    SET email = 'newemail@example.com'
+    WHERE id = 1
+  `)
+  console.log('Rows updated:', result.rowCount)
+  
+  // Update multiple rows
+  await client.query(`
+    UPDATE users
+    SET status = 'active'
+    WHERE created_at > '2024-01-01'
+  `)
+} finally {
+  await client.end()
+}
+```
+
+#### Delete (DELETE)
+
+```javascript
+await client.connect()
+
+try {
+  // Delete specific row
+  const result = await client.query(`
+    DELETE FROM users WHERE id = 3
+  `)
+  console.log('Rows deleted:', result.rowCount)
+  
+  // Delete with condition
+  await client.query(`
+    DELETE FROM logs WHERE created_at < '2024-01-01'
+  `)
+} finally {
+  await client.end()
+}
+```
 
 ### Transactions
 
@@ -178,6 +288,19 @@ client.on('error', (err) => {
 For issues and questions:
 - GitHub Issues: [Report issues](https://github.com/IBM/nz-node/issues)
 - Netezza Documentation: [IBM Netezza Docs](https://www.ibm.com/docs/en/netezza)
+
+## Contribution and help
+All bug reports, feature requests and contributions are welcome at https://github.com/IBM/nz-node
+
+If you have any questions or issues you can create a new issue here.
+
+Pull requests are very welcome! Make sure your patches are well tested. Ideally create a topic branch for every separate change you make. For example:
+
+Fork the repo (git clone https://github.com/IBM/nz-node.git)
+Create your feature branch (git checkout -b my-new-feature)
+Commit your changes (git commit -am 'Added some feature')
+Push to the branch (git push origin my-new-feature)
+Create new Pull Request
 
 ## References
 
