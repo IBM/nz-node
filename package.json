@@ -1,5 +1,5 @@
 {
-  "name": "netezza-node-driver",
+  "name": "ibm-netezza",
   "version": "1.0.1",
   "description": "Node.js driver for IBM Netezza databases with full protocol support",
   "keywords": [
@@ -12,10 +12,10 @@
     "sql",
     "rdbms"
   ],
-  "homepage": "https://github.com/abhishekjog/nz-node",
+  "homepage": "https://github.com/IBM/nz-node",
   "repository": {
     "type": "git",
-    "url": "git://github.com/abhishekjog/nz-node.git"
+    "url": "git://github.com/IBM/nz-node.git"
   },
   "author": "Abhishek Jog",
   "contributors": [

@@ -1,6 +1,8 @@
 # Netezza Node.js Driver
 
-A Node.js driver for IBM Netezza databases,implementing IBM's proprietary Netezza protocol.
+**Repository:** https://github.com/IBM/nz-node
+
+A Node.js driver for IBM Netezza databases, implementing IBM's proprietary Netezza protocol.
 
 ## Overview
 
@@ -9,7 +11,7 @@ This is a dedicated Netezza driver that implements the Netezza-specific connecti
 ## Installation
 
 ```bash
-npm install netezza-node-driver
+npm install ibm-netezza
 ```
 
 ## Features
@@ -29,7 +31,7 @@ npm install netezza-node-driver
 ### Basic Connection
 
 ```javascript
-const { Client } = require('netezza-node-driver')
+const { Client } = require('ibm-netezza')
 
 const client = new Client({
   host: 'netezza-host.example.com',
@@ -52,7 +54,7 @@ try {
 ### Using Connection Pool
 
 ```javascript
-const { Pool } = require('netezza-node-driver')
+const { Pool } = require('ibm-netezza')
 
 const pool = new Pool({
   host: 'netezza-host.example.com',
