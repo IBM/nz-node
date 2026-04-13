@@ -153,7 +153,8 @@ const debug = false
 
 function dump(data: unknown) {
   if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
-    const hex = Buffer.from(data).toString('hex')
+    const buffer = data instanceof ArrayBuffer ? new Uint8Array(data) : data
+    const hex = Buffer.from(buffer).toString('hex')
     const str = new TextDecoder().decode(data)
     return `\n>>> STR: "${str.replace(/\n/g, '\\n')}"\n>>> HEX: ${hex}\n`
   } else {

@@ -540,10 +540,51 @@ const parseDbosDataRow = (
 
   // Data section starts after the bitmap and padding
   const dataStart = offset
-  // Variable fields start after fixed fields
-  // Note: fixedFieldsSize includes a 4-byte header that's not in our data, so subtract it
-  const actualFixedSize = tupdesc ? Math.max(0, tupdesc.fixedFieldsSize - 4) : 0
-  let varOffset = dataStart + actualFixedSize
+  
+  // CRITICAL FIX: Variable fields start after fixed fields
+  // The fixedFieldsSize from tupdesc tells us where fixed fields end
+  // However, it includes a 4-byte header that's not in our data, so we subtract 4
+  // Additionally, Netezza adds padding for alignment after fixed fields
+  let varOffset = dataStart
+  
+  if (tupdesc && tupdesc.fixedFieldsSize > 0) {
+    // Calculate the adjusted fixed size (subtract the 4-byte header)
+    const adjustedFixedSize = tupdesc.fixedFieldsSize >= 4 ? tupdesc.fixedFieldsSize - 4 : tupdesc.fixedFieldsSize
+    varOffset = dataStart + adjustedFixedSize
+    
+    if (process.env.DEBUG_DATAROW) {
+      console.log(`[DBOS DataRow] fixedFieldsSize=${tupdesc.fixedFieldsSize}, adjustedFixedSize=${adjustedFixedSize}, initial varOffset=${varOffset}`)
+      console.log(`[DBOS DataRow] numVaryingFields=${tupdesc.numVaryingFields}, tupleData.length=${tupleData.length}`)
+    }
+    
+    // Netezza adds a padding byte after fixed fields for alignment
+    // This is especially common when BOOLEAN fields are present
+    // The padding byte is typically 0x00 or 0xff
+    // We can detect it by checking if the next 2 bytes form a valid length prefix
+    if (varOffset + 1 < tupleData.length && tupdesc.numVaryingFields > 0) {
+      const possibleLength = tupleData.readUInt16LE(varOffset)
+      
+      if (process.env.DEBUG_DATAROW) {
+        console.log(`[DBOS DataRow] Checking padding: possibleLength=${possibleLength}, remaining=${tupleData.length - varOffset}`)
+      }
+      
+      // Valid VARCHAR length should be:
+      // - At least 2 (includes the 2-byte length itself)
+      // - Not larger than remaining data
+      // - Typically less than 1000 for reasonable strings
+      // If it looks invalid, skip one padding byte
+      if (possibleLength < 2 || possibleLength > tupleData.length - varOffset) {
+        varOffset += 1
+        if (process.env.DEBUG_DATAROW) {
+          console.log(`[DBOS DataRow] Skipped padding byte 0x${tupleData[varOffset - 1].toString(16)} at offset ${varOffset - 1}, new varOffset: ${varOffset}`)
+        }
+      }
+    }
+  }
+
+  if (process.env.DEBUG_DATAROW) {
+    console.log(`[DBOS DataRow] Variable fields start at offset: ${varOffset}`)
+  }
 
   for (let i = 0; i < fieldCount; i++) {
     // Check if field is null using bitmap (bit=1 means NULL in Netezza)
@@ -568,10 +609,8 @@ const parseDbosDataRow = (
 
       if (isFixedSize) {
         // Fixed-size field: offset is relative to data start
-        // Note: Netezza includes a 4-byte header in the fixed section, so we need to subtract it
         const fieldOffset = tupdesc.field_offset[i]
         // The offset in tupdesc includes the 4-byte header, but our data doesn't have it
-        // So we subtract 4 from the offset
         const adjustedOffset = fieldOffset >= 4 ? fieldOffset - 4 : fieldOffset
         const absoluteOffset = dataStart + adjustedOffset
 
@@ -625,7 +664,8 @@ const parseDbosDataRow = (
           }
         } else if (fieldType === NzTypeBool) {
           if (absoluteOffset + 1 <= tupleData.length) {
-            fields[i] = tupleData[absoluteOffset] !== 0
+            // Convert boolean to string 't' or 'f' for pg-types parser compatibility
+            fields[i] = tupleData[absoluteOffset] !== 0 ? 't' : 'f'
           } else {
             fields[i] = null
           }
@@ -639,25 +679,69 @@ const parseDbosDataRow = (
         }
       } else {
         // Variable-size field: read from variable offset with 2-byte length prefix
-        // Note: Netezza uses LITTLE-ENDIAN for variable field length prefix
-        if (varOffset + 2 <= tupleData.length) {
-          const fieldLength = tupleData.readUInt16LE(varOffset)
-
+        // CRITICAL FIX: Ensure we have enough data before reading
+        if (varOffset + 2 > tupleData.length) {
+          fields[i] = ''
           if (process.env.DEBUG_DATAROW) {
-            console.log(`[DBOS DataRow] Field ${i}: reading from var offset ${varOffset}, length=${fieldLength}`)
+            console.log(`[DBOS DataRow] Field ${i}: insufficient data at varOffset ${varOffset}`)
           }
+          continue
+        }
 
-          if (fieldLength >= 2 && varOffset + fieldLength <= tupleData.length) {
-            // Length includes the 2-byte length prefix itself
-            const dataLength = fieldLength - 2
+        const fieldLength = tupleData.readUInt16LE(varOffset)
+
+        if (process.env.DEBUG_DATAROW) {
+          console.log(`[DBOS DataRow] Field ${i}: reading from var offset ${varOffset}, length=${fieldLength}`)
+          console.log(`[DBOS DataRow] Field ${i}: next bytes:`, tupleData.slice(varOffset, Math.min(varOffset + 20, tupleData.length)).toString('hex'))
+        }
+
+        // CRITICAL FIX: Validate field length is reasonable
+        // fieldLength of 0 or 2 means empty string (just the length prefix)
+        if (fieldLength === 0 || fieldLength === 2) {
+          fields[i] = ''
+          if (process.env.DEBUG_DATAROW) {
+            console.log(`[DBOS DataRow] Field ${i}: empty string (length=${fieldLength})`)
+          }
+          varOffset += 2
+        } else if (fieldLength > tupleData.length - varOffset || fieldLength < 2) {
+          // Invalid length, treat as empty string
+          fields[i] = ''
+          if (process.env.DEBUG_DATAROW) {
+            console.log(`[DBOS DataRow] Field ${i}: invalid length ${fieldLength}, treating as empty`)
+          }
+          // Try to skip to next field by advancing 2 bytes (just the length prefix)
+          varOffset += 2
+        } else {
+          // Length includes the 2-byte length prefix itself
+          const dataLength = fieldLength - 2
+          
+          if (dataLength > 0) {
             fields[i] = tupleData.slice(varOffset + 2, varOffset + 2 + dataLength).toString('utf8')
-            varOffset += fieldLength
           } else {
             fields[i] = ''
-            varOffset += 2
           }
-        } else {
-          fields[i] = ''
+          
+          // Advance to next variable field
+          varOffset += fieldLength
+          
+          // CRITICAL FIX: Skip padding/alignment byte between variable fields
+          // Netezza adds padding bytes (0xff, 0x00, or other values) after variable fields
+          // The padding ensures proper alignment for the next field
+          // Check if the next byte looks like a valid length prefix (< 256 for the low byte)
+          // If not, it's likely padding and should be skipped
+          if (varOffset < tupleData.length) {
+            // Peek at the next 2 bytes to see if they look like a valid length
+            if (varOffset + 1 < tupleData.length) {
+              const nextLength = tupleData.readUInt16LE(varOffset)
+              // If the "length" is suspiciously large (> remaining data), skip one byte
+              if (nextLength > tupleData.length - varOffset) {
+                varOffset += 1
+                if (process.env.DEBUG_DATAROW) {
+                  console.log(`[DBOS DataRow] Field ${i}: skipped padding byte 0x${tupleData[varOffset - 1].toString(16)} at offset ${varOffset - 1}`)
+                }
+              }
+            }
+          }
         }
       }
 
@@ -690,6 +774,10 @@ const parseDbosDataRow = (
         console.log(`[DBOS DataRow] Field ${i}: ${fields[i]}`)
       }
     }
+  }
+
+  if (process.env.DEBUG_DATAROW) {
+    console.log(`[DBOS DataRow] Final fields array:`, fields)
   }
 
   return new DataRowMessage(LATEINIT_LENGTH, fields)

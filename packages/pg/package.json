@@ -67,7 +67,8 @@
     }
   },
   "scripts": {
-    "test": "make test-all"
+    "test": "make test-all",
+    "build": "echo 'No build needed - this is a JavaScript package'"
   },
   "files": [
     "lib",
