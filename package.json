@@ -3,8 +3,6 @@
   "description": "node postgres monorepo",
   "main": "index.js",
   "private": true,
-  "repository": "git@github.com:brianc/node-postgres.git",
-  "author": "Brian M. Carlson <brian.m.carlson@gmail.com>",
   "license": "MIT",
   "workspaces": [
     "packages/*"
