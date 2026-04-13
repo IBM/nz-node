@@ -86,15 +86,21 @@ try {
 ### Transactions
 
 ```javascript
-const client = await pool.connect()
+const client = new Client({
+    host: 'localhost',
+    port: '5480'),
+    database: 'system',
+    user: 'admin',
+    password: 'password',
+    debug: false,
+  })
 
 try {
+  await client.connect()
   await client.query('BEGIN')
   
-  await client.query('INSERT INTO accounts(name, balance) VALUES($1, $2)', 
-    ['Alice', 1000])
-  await client.query('INSERT INTO accounts(name, balance) VALUES($1, $2)', 
-    ['Bob', 500])
+  await client.query("INSERT INTO transaction_test VALUES (1, 'A', 'tr1')")
+  await client.query("INSERT INTO transaction_test VALUES (2, 'B', 'tr2')")
   
   await client.query('COMMIT')
   console.log('Transaction committed')
@@ -103,7 +109,7 @@ try {
   console.error('Transaction rolled back', e)
   throw e
 } finally {
-  client.release()
+  await client.end()
 }
 ```
 
