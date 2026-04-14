@@ -45,7 +45,6 @@ try {
   console.log(result.rows)
 } catch (err) {
   console.error('Error:', err.message)
-  throw err
 } finally {
   await client.end()
 }
@@ -129,7 +128,6 @@ try {
   console.log('Rows inserted:', result.rowCount)
 } catch (err) {
   console.error('Error:', err.message)
-  throw err
 } finally {
   await client.end()
 }
@@ -152,7 +150,7 @@ try {
   console.log('User:', specificUser.rows[0])
 } catch (err) {
   console.error('Error:', err.message)
-  throw err
+  
 } finally {
   await client.end()
 }
@@ -180,7 +178,6 @@ try {
   `)
 } catch (err) {
   console.error('Error:', err.message)
-  throw err
 } finally {
   await client.end()
 }
@@ -204,7 +201,6 @@ try {
   `)
 } catch (err) {
   console.error('Error:', err.message)
-  throw err
 } finally {
   await client.end()
 }
@@ -233,8 +229,7 @@ try {
   console.log('Transaction committed')
 } catch (e) {
   await client.query('ROLLBACK')
-  console.error('Transaction rolled back', e)
-  throw e
+  console.error('Transaction rolled back', e.message)
 } finally {
   await client.end()
 }
