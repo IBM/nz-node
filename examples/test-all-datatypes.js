@@ -7,7 +7,7 @@ const { Client } = require('../lib')
 
 async function testAllDataTypes() {
   const client = new Client({
-    host: process.env.NZ_HOST || 'abs-nzlite1.fyre.ibm.com',
+    host: process.env.NZ_HOST || 'localhost',
     port: process.env.NZ_PORT || 5480,
     database: process.env.NZ_DATABASE || 'system',
     user: process.env.NZ_USER || 'admin',
