@@ -41,7 +41,7 @@ const client = new Client({
 
 try {
   await client.connect()
-  const result = await client.query('SELECT * FROM my_table')
+  const result = await client.query('SELECT * FROM my_table;')
   console.log(result.rows)
 } catch (err) {
   console.error('Error:', err.message)
@@ -74,7 +74,6 @@ try {
 ```javascript
 {
   rows: [],        // Array of row objects
-  fields: [],      // Array of field metadata
   rowCount: 0,     // Number of rows
   command: 'SELECT', // SQL command
   notices: []      // Array of notice messages from server
@@ -123,7 +122,7 @@ try {
   // Insert single row
   const result = await client.query(`
     INSERT INTO users (id, name, email)
-    VALUES (1, 'John Doe', 'john@example.com')
+    VALUES (1, 'John Doe', 'john@example.com');
   `)
   console.log('Rows inserted:', result.rowCount)
 } catch (err) {
@@ -140,12 +139,12 @@ try {
   await client.connect()
   
   // Select all rows
-  const allUsers = await client.query('SELECT * FROM users')
+  const allUsers = await client.query('SELECT * FROM users;')
   console.log('All users:', allUsers.rows)
   
   // Select with WHERE clause
   const specificUser = await client.query(`
-    SELECT * FROM users WHERE id = 1
+    SELECT * FROM users WHERE id = 1;
   `)
   console.log('User:', specificUser.rows[0])
 } catch (err) {
@@ -166,7 +165,7 @@ try {
   const result = await client.query(`
     UPDATE users
     SET email = 'newemail@example.com'
-    WHERE id = 1
+    WHERE id = 1;
   `)
   console.log('Rows updated:', result.rowCount)
   
@@ -174,7 +173,7 @@ try {
   await client.query(`
     UPDATE users
     SET status = 'active'
-    WHERE created_at > '2024-01-01'
+    WHERE id = 2;
   `)
 } catch (err) {
   console.error('Error:', err.message)
@@ -191,13 +190,13 @@ try {
   
   // Delete specific row
   const result = await client.query(`
-    DELETE FROM users WHERE id = 3
+    DELETE FROM users WHERE id = 3;
   `)
   console.log('Rows deleted:', result.rowCount)
   
   // Delete with condition
   await client.query(`
-    DELETE FROM logs WHERE created_at < '2024-01-01'
+    DELETE FROM logs WHERE id = 4;
   `)
 } catch (err) {
   console.error('Error:', err.message)
@@ -239,7 +238,7 @@ try {
 
 ```javascript
 try {
-  await client.query('SELECT * FROM nonexistent_table')
+  await client.query('SELECT * FROM nonexistent_table;')
 } catch (err) {
   console.error('Query error:', err.message)
 }
