@@ -1,6 +1,6 @@
 {
   "name": "ibm-netezza",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Node.js driver for IBM Netezza databases with full protocol support",
   "keywords": [
     "netezza",
@@ -36,20 +36,8 @@
     "./lib/*": "./lib/*.js",
     "./lib/*.js": "./lib/*.js"
   },
-  "dependencies": {
-    "pgpass": "1.0.5"
-  },
-  "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "0.8.23",
-    "@cloudflare/workers-types": "^4.20230404.0",
-    "async": "2.6.4",
-    "bluebird": "3.7.2",
-    "co": "4.6.0",
-    "pg-copy-streams": "0.3.0",
-    "typescript": "^4.0.3",
-    "vitest": "~3.0.9",
-    "wrangler": "^3.x"
-  },
+  "dependencies": {},
+  "devDependencies": {},
   "scripts": {
     "test": "make test-all",
     "build": "echo 'No build needed - this is a JavaScript package'"
