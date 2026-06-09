@@ -839,6 +839,147 @@ async function datatypesExample() {
   }
 }
 
+async function sessionConnectionHistoryExample() {
+  console.log('\n=== Netezza Session Connection History Example ===\n')
+
+  const client = new Client({
+    host: process.env.NETEZZA_HOST || 'localhost',
+    port: parseInt(process.env.NETEZZA_PORT || '5480'),
+    database: process.env.NETEZZA_DATABASE || 'system',
+    user: process.env.NETEZZA_USER || 'admin',
+    password: process.env.NETEZZA_PASSWORD || 'password',
+    debug: false,
+  })
+
+  try {
+    console.log('Connecting to Netezza...')
+    await client.connect()
+    console.log('✓ Connected successfully!\n')
+
+    console.log('--- Querying Netezza Session Connection History ---')
+    console.log('Fetching last 5 connection attempts (successful and failed)...\n')
+
+    const sessionHistoryQuery = `
+      SELECT
+        row_number() over (order by pq.connecttime desc) as row_num,
+        *
+      FROM (
+        SELECT
+          npsid,
+          npsinstanceid,
+          sp.clientip,
+          sp.sessionusername,
+          sp.dbname,
+          sp.sessionid as "SESSIONID",
+          sp.clienttype as "CLIENTTYPE",
+          CASE
+            WHEN sp.clienthost is null THEN '-'
+            WHEN trim(both from sp.clienthost) = '' THEN '-'
+            ELSE sp.clienthost
+          END as "CLIENTHOST",
+          CASE
+            WHEN sp.resourcegroupname is null THEN '-'
+            WHEN trim(both from sp.resourcegroupname) = '' THEN '-'
+            ELSE sp.resourcegroupname
+          END as "RESOURCEGROUPNAME",
+          sp.connecttime as "CONNECTTIME",
+          se.endtime as "ENDTIME",
+          0 as "FAILURETYPE",
+          '-' as "FAILURE",
+          'success' as "CONNECTIONRESULT"
+        FROM HISTDB.HISTDBOWNER."$hist_session_prolog_3" sp
+        LEFT OUTER JOIN HISTDB.HISTDBOWNER."$hist_session_epilog_3" se
+          USING (sessionid, npsid, npsinstanceid)
+        
+        UNION ALL
+        
+        SELECT
+          npsid,
+          npsinstanceid,
+          clientip,
+          sessionusername,
+          '-' as dbname,
+          0 as "SESSIONID",
+          0 as "CLIENTTYPE",
+          '-' as "CLIENTHOST",
+          '-' as "RESOURCEGROUPNAME",
+          time as "CONNECTTIME",
+          null as "ENDTIME",
+          failuretype as "FAILURETYPE",
+          failure as "FAILURE",
+          'authentication_failure' as "CONNECTIONRESULT"
+        FROM HISTDB.HISTDBOWNER."$hist_failed_authentication_3"
+        
+        UNION ALL
+        
+        SELECT
+          npsid,
+          npsinstanceid,
+          clientip,
+          sessionusername,
+          '-' as dbname,
+          0 as "SESSIONID",
+          0 as "CLIENTTYPE",
+          '-' as "CLIENTHOST",
+          '-' as "RESOURCEGROUPNAME",
+          time as "CONNECTTIME",
+          null as "ENDTIME",
+          failuretype as "FAILURETYPE",
+          failure as "FAILURE",
+          'connection_failure' as "CONNECTIONRESULT"
+        FROM HISTDB.HISTDBOWNER."$hist_failed_connection_3"
+      ) as pq
+      ORDER BY pq.connecttime DESC
+      LIMIT 100
+    `
+
+    const result = await client.query(sessionHistoryQuery)
+    
+    console.log('✓ Query executed successfully')
+    console.log('  - command:', result.command)
+    console.log('  - rowCount:', result.rowCount)
+    console.log('  - fields:', result.fields.length)
+    console.log()
+
+    // Debug: Show field names
+    console.log('Field names returned by query:')
+    result.fields.forEach(field => console.log('  -', field.name))
+    console.log()
+
+    if (result.rows.length > 0) {
+      console.log('Session Connection History (Last 5 attempts):')
+      console.log('==============================================')
+      result.rows.forEach((row, index) => {
+        console.log(`\n--- Connection Attempt #${row.row_num || row.ROW_NUM} ---`)
+        console.log('  NPS ID:', row.npsid || row.NPSID)
+        console.log('  NPS Instance ID:', row.npsinstanceid || row.NPSINSTANCEID)
+        console.log('  Client IP:', row.clientip || row.CLIENTIP)
+        console.log('  Session Username:', row.sessionusername || row.SESSIONUSERNAME)
+        console.log('  Database:', row.dbname || row.DBNAME)
+        console.log('  Session ID:', row.SESSIONID || row.sessionid)
+        console.log('  Client Type:', row.CLIENTTYPE || row.clienttype)
+        console.log('  Client Host:', row.CLIENTHOST || row.clienthost)
+        console.log('  Resource Group:', row.RESOURCEGROUPNAME || row.resourcegroupname)
+        console.log('  Connect Time:', row.CONNECTTIME || row.connecttime)
+        console.log('  End Time:', row.ENDTIME || row.endtime )
+        console.log('  Failure Type:', row.FAILURETYPE || row.failuretype)
+        console.log('  Failure:', row.FAILURE || row.failure)
+        console.log('  Connection Result:', row.CONNECTIONRESULT || row.connectionresult)
+      })
+      console.log('\n✓ Test PASSED: Session connection history retrieved successfully\n')
+    } else {
+      console.log('No session connection history records found\n')
+    }
+
+  } catch (error) {
+    console.error('✗ Test FAILED:', error.message)
+    console.error('Error details:', error)
+  } finally {
+    await client.end()
+    console.log('✓ Connection closed')
+  }
+}
+
 // Main execution
 async function main() {
   console.log('Netezza Node.js Driver Examples')
@@ -857,11 +998,13 @@ async function main() {
 
     // Uncomment to run other examples
     // await transactionExample()
-    // await ddlExample()
-    await basicExample()
+    // await ddlExample() 
+    // await basicExample()
     // await secureConnectionExample()
     // await poolExample()
     // await errorHandlingExample()
+   
+    await sessionConnectionHistoryExample()
   } catch (error) {
     console.error('Fatal error:', error)
     process.exit(1)
@@ -880,5 +1023,6 @@ module.exports = {
   errorHandlingExample,
   transactionExample,
   ddlExample,
-  datatypesExample
+  datatypesExample,
+  sessionConnectionHistoryExample
 }
