@@ -839,112 +839,6 @@ async function datatypesExample() {
   }
 }
 
-async function queryHistoryExample() {
-  console.log('\n=== Netezza Query History Example ===\n')
-
-  const client = new Client({
-    host: process.env.NETEZZA_HOST || 'localhost',
-    port: parseInt(process.env.NETEZZA_PORT || '5480'),
-    database: process.env.NETEZZA_DATABASE || 'system',
-    user: process.env.NETEZZA_USER || 'admin',
-    password: process.env.NETEZZA_PASSWORD || 'password',
-    debug: false,
-  })
-
-  try {
-    console.log('Connecting to Netezza...')
-    await client.connect()
-    console.log('✓ Connected successfully!\n')
-
-    console.log('--- Querying Netezza Query History ---')
-    console.log('Fetching last 1000000 queries from history database...\n')
-
-    const historyQuery = `
-      SELECT
-        QP.SESSIONID,
-        QP.DBNAME,
-        QP.USERNAME,
-        QP.SUBMITTIME,
-        QE.FINISHTIME,
-        (QE.FINISHTIME::timestamp - QP.SUBMITTIME::timestamp) AS ELAPSED,
-        QE.STATUS,
-        PP.PLANID,
-        PP.ESTIMATEDDISK,
-        PP.ESTIMATEDMEM,
-        PP.ESTIMATEDCOST,
-        PP.TOTALSNIPPETS,
-        QP.QUERYTEXT AS QUERY,
-        QP.CLIENT_USER_ID,
-        QP.CLIENT_APPLICATION_NAME,
-        QP.CLIENT_WORKSTATION_NAME,
-        QP.CLIENT_ACCOUNTING_STRING
-      FROM HISTDB.HISTDBOWNER."$hist_query_prolog_3" QP
-      INNER JOIN (
-        SELECT
-          QE.FINISHTIME,
-          QE.STATUS,
-          QE.NPSID,
-          QE.NPSINSTANCEID,
-          QE.OPID
-        FROM HISTDB.HISTDBOWNER."$hist_query_epilog_3" QE
-      ) QE USING (npsid, npsinstanceid, OPID)
-      LEFT OUTER JOIN HISTDB.HISTDBOWNER."$hist_plan_prolog_3" PP
-        USING (npsid, SESSIONID, npsinstanceid, OPID)
-      ORDER BY QE.FINISHTIME DESC
-      LIMIT 3;
-    `
-
-    const result = await client.query(historyQuery)
-    
-    console.log('✓ Query executed successfully')
-    console.log('  - command:', result.command)
-    console.log('  - rowCount:', result.rowCount)
-    console.log('  - fields:', result.fields.length)
-    console.log()
-
-    // Debug: Show field names
-    console.log('Field names returned by query:')
-    result.fields.forEach(field => console.log('  -', field.name))
-    console.log()
-
-    if (result.rows.length > 0) {
-      console.log('Sample of first 5 query history records:')
-      console.log('=========================================')
-      result.rows.slice(0, 5).forEach((row, index) => {
-        console.log(`\nRecord ${index + 1}:`)
-        console.log('  Session ID:', row.SESSIONID || row.sessionid)
-        console.log('  Database:', row.DBNAME || row.dbname)
-        console.log('  Username:', row.USERNAME || row.username)
-        console.log('  Submit Time:', row.SUBMITTIME || row.submittime)
-        console.log('  Finish Time:', row.FINISHTIME || row.finishtime)
-        console.log('  Elapsed:', row.ELAPSED || row.elapsed)
-        console.log('  Status:', row.STATUS || row.status)
-        console.log('  Plan ID:', row.PLANID || row.planid)
-        console.log('  Estimated Disk:', row.ESTIMATEDDISK || row.estimateddisk)
-        console.log('  Estimated Memory:', row.ESTIMATEDMEM || row.estimatedmem)
-        console.log('  Estimated Cost:', row.ESTIMATEDCOST || row.estimatedcost)
-        console.log('  Total Snippets:', row.TOTALSNIPPETS || row.totalsnippets)
-        const query = row.QUERY || row.query
-        console.log('  Query:', query ? query.substring(0, 100) + '...' : 'N/A')
-        console.log('  Client User ID:', row.CLIENT_USER_ID || row.client_user_id)
-        console.log('  Client Application:', row.CLIENT_APPLICATION_NAME || row.client_application_name)
-        console.log('  Client Workstation:', row.CLIENT_WORKSTATION_NAME || row.client_workstation_name)
-        console.log('  Client Accounting String:', row.CLIENT_ACCOUNTING_STRING || row.client_accounting_string)
-      })
-      console.log('\n✓ Test PASSED: Query history retrieved successfully\n')
-    } else {
-      console.log('No query history records found\n')
-    }
-
-  } catch (error) {
-    console.error('✗ Test FAILED:', error.message)
-    console.error('Error details:', error)
-  } finally {
-    await client.end()
-    console.log('✓ Connection closed')
-  }
-}
-
 async function sessionConnectionHistoryExample() {
   console.log('\n=== Netezza Session Connection History Example ===\n')
 
@@ -1109,7 +1003,7 @@ async function main() {
     // await secureConnectionExample()
     // await poolExample()
     // await errorHandlingExample()
-    // await queryHistoryExample()
+   
     await sessionConnectionHistoryExample()
   } catch (error) {
     console.error('Fatal error:', error)
@@ -1130,6 +1024,5 @@ module.exports = {
   transactionExample,
   ddlExample,
   datatypesExample,
-  queryHistoryExample,
   sessionConnectionHistoryExample
 }
